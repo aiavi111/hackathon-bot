@@ -377,13 +377,23 @@ async def approve_by_reply(message: Message):
 
     captain_id = review_data["captain_id"]
 
-    try:
-        await message.bot.send_message(
-            chat_id=captain_id,
-            text=(
+        try:
+        if review_data["team_size"] == 1:
+            user_text = (
+                "✅ Оплата подтверждена.\n"
+                "Вы успешно зарегистрированы на хакатон как индивидуальный участник.\n\n"
+                "Чтобы найти команду, переходите в чат:\n"
+                "t.me/vsonujnoe/228"
+            )
+        else:
+            user_text = (
                 "✅ Оплата подтверждена.\n"
                 "Ваша команда успешно зарегистрирована на хакатон."
             )
+
+        await message.bot.send_message(
+            chat_id=captain_id,
+            text=user_text
         )
     except Exception:
         await message.answer("Не получилось отправить сообщение участнику, но команда будет добавлена в список.")
