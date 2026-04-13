@@ -19,14 +19,15 @@ def team_size_keyboard() -> InlineKeyboardMarkup:
     return InlineKeyboardMarkup(
         inline_keyboard=[
             [
+                InlineKeyboardButton(text="👤 1", callback_data="team_size_1"),
                 InlineKeyboardButton(text="2", callback_data="team_size_2"),
+            ],
+            [
                 InlineKeyboardButton(text="3", callback_data="team_size_3"),
-            ],
-            [
                 InlineKeyboardButton(text="4", callback_data="team_size_4"),
-                InlineKeyboardButton(text="5", callback_data="team_size_5"),
             ],
             [
+                InlineKeyboardButton(text="5", callback_data="team_size_5"),
                 InlineKeyboardButton(text="6", callback_data="team_size_6"),
             ]
         ]
