@@ -238,17 +238,19 @@ def format_approved_team_text(review_data: dict) -> str:
 
     return text
 
-
-@router.callback_query(RegistrationState.choosing_language, F.data.startswith("lang_"))
+@router.callback_query(F.data.in_(["lang_ru", "lang_kg", "lang_en"]))
 async def language_chosen(callback: CallbackQuery, state: FSMContext):
     lang = callback.data
+
+    await state.clear()
     await state.update_data(language=lang)
     await state.set_state(RegistrationState.team_name)
+
+    await callback.answer()
 
     await callback.message.edit_text(
         f"{t(lang, 'language_selected')}\n\n{t(lang, 'send_team_name')}"
     )
-    await callback.answer()
 
 
 @router.message(RegistrationState.team_name)
