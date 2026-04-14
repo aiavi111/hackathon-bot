@@ -238,6 +238,7 @@ def format_approved_team_text(review_data: dict) -> str:
 
     return text
 
+
 @router.callback_query(F.data.in_(["lang_ru", "lang_kg", "lang_en"]))
 async def language_chosen(callback: CallbackQuery, state: FSMContext):
     lang = callback.data
@@ -435,71 +436,87 @@ async def send_receipt_to_group(message: Message, state: FSMContext, is_photo: b
     data = await state.get_data()
     lang = data.get("language", "lang_ru")
 
-    if not GROUP_CHAT_ID:
-        await message.answer(t(lang, "group_id_missing"))
-        return
+    try:
+        if not GROUP_CHAT_ID:
+            await message.answer(t(lang, "group_id_missing"))
+            print("ERROR: GROUP_CHAT_ID is empty")
+            return
 
-    team_name = data["team_name"]
-    team_size = data["team_size"]
-    total_amount = data["total_amount"]
-    captain_username = data.get("captain_username")
-    captain_id = data.get("captain_id")
-    participants = data.get("participants", [])
+        team_name = data["team_name"]
+        team_size = data["team_size"]
+        total_amount = data["total_amount"]
+        captain_username = data.get("captain_username")
+        captain_id = data.get("captain_id")
+        participants = data.get("participants", [])
 
-    caption = (
-        f"{t(lang, 'new_review')}\n\n"
-        f"{t(lang, 'team')}: {team_name}\n"
-        f"{t(lang, 'participants_count')}: {team_size}\n"
-        f"{t(lang, 'payment_sum')}: {total_amount} сом\n\n"
-        f"{t(lang, 'members_list')}:\n"
-    )
-
-    for i, p in enumerate(participants, start=1):
-        caption += f"{i}. {p['full_name']} — {p['telegram']}\n"
-
-    caption += "\n"
-    if captain_username:
-        caption += f"Капитан: @{captain_username}\n"
-    else:
-        caption += t(lang, "captain_no_username") + "\n"
-
-    caption += f"Telegram ID капитана: {captain_id}\n"
-    caption += f'<a href="tg://user?id={captain_id}">{t(lang, "open_profile")}</a>\n\n'
-    caption += t(lang, "reply_confirm")
-
-    group_chat_id = int(GROUP_CHAT_ID)
-
-    if is_photo:
-        file_id = message.photo[-1].file_id
-        sent_message = await message.bot.send_photo(
-            chat_id=group_chat_id,
-            photo=file_id,
-            caption=caption,
-            parse_mode="HTML",
-        )
-    else:
-        file_id = message.document.file_id
-        sent_message = await message.bot.send_document(
-            chat_id=group_chat_id,
-            document=file_id,
-            caption=caption,
-            parse_mode="HTML",
+        caption = (
+            f"{t(lang, 'new_review')}\n\n"
+            f"{t(lang, 'team')}: {team_name}\n"
+            f"{t(lang, 'participants_count')}: {team_size}\n"
+            f"{t(lang, 'payment_sum')}: {total_amount} сом\n\n"
+            f"{t(lang, 'members_list')}:\n"
         )
 
-    pending_reviews = load_pending_reviews()
-    pending_reviews[str(sent_message.message_id)] = {
-        "captain_id": captain_id,
-        "team_name": team_name,
-        "team_size": team_size,
-        "total_amount": total_amount,
-        "participants": participants,
-        "status": "pending",
-        "language": lang,
-    }
-    save_pending_reviews(pending_reviews)
+        for i, p in enumerate(participants, start=1):
+            caption += f"{i}. {p['full_name']} — {p['telegram']}\n"
 
-    await message.answer(t(lang, "receipt_sent"))
-    await state.clear()
+        caption += "\n"
+        if captain_username:
+            caption += f"Капитан: @{captain_username}\n"
+        else:
+            caption += t(lang, "captain_no_username") + "\n"
+
+        caption += f"Telegram ID капитана: {captain_id}\n"
+        caption += f'<a href="tg://user?id={captain_id}">{t(lang, "open_profile")}</a>\n\n'
+        caption += t(lang, "reply_confirm")
+
+        group_chat_id = int(GROUP_CHAT_ID)
+
+        print("GROUP_CHAT_ID:", group_chat_id)
+        print("IS_PHOTO:", is_photo)
+        print("CAPTION:", caption)
+
+        if is_photo:
+            file_id = message.photo[-1].file_id
+            print("PHOTO FILE ID:", file_id)
+
+            sent_message = await message.bot.send_photo(
+                chat_id=group_chat_id,
+                photo=file_id,
+                caption=caption,
+                parse_mode="HTML",
+            )
+        else:
+            file_id = message.document.file_id
+            print("DOCUMENT FILE ID:", file_id)
+
+            sent_message = await message.bot.send_document(
+                chat_id=group_chat_id,
+                document=file_id,
+                caption=caption,
+                parse_mode="HTML",
+            )
+
+        print("SENT MESSAGE ID:", sent_message.message_id)
+
+        pending_reviews = load_pending_reviews()
+        pending_reviews[str(sent_message.message_id)] = {
+            "captain_id": captain_id,
+            "team_name": team_name,
+            "team_size": team_size,
+            "total_amount": total_amount,
+            "participants": participants,
+            "status": "pending",
+            "language": lang,
+        }
+        save_pending_reviews(pending_reviews)
+
+        await message.answer(t(lang, "receipt_sent"))
+        await state.clear()
+
+    except Exception as e:
+        print("SEND_RECEIPT_ERROR:", repr(e))
+        await message.answer(f"Ошибка при отправке чека: {e}")
 
 
 @router.message(F.chat.id == int(GROUP_CHAT_ID) if GROUP_CHAT_ID else False)
